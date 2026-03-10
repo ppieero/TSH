@@ -7,6 +7,7 @@ export type SessionStatus = 'pending' | 'in_progress' | 'completed' | 'reported'
 export type SeverityLevel = 'typical' | 'monitor' | 'attention' | 'urgent';
 export type AudioQuality = 'good' | 'fair' | 'poor';
 export type MimeType = 'audio/webm' | 'audio/mp4' | 'audio/ogg';
+export type SupportedLocale = 'es' | 'en' | 'pt';
 
 // 17 Phonological patterns
 export type PhonologicalCode =
@@ -17,6 +18,12 @@ export type PhonologicalCode =
   // Sustituciones (ES)
   | 'ES-O' | 'ES-F' | 'ES-P' | 'ES-SL' | 'ES-SLNL' | 'ES-PS';
 
+export const ALL_PHONOLOGICAL_CODES: PhonologicalCode[] = [
+  'EM-C1','EM-C2','EM-C3','EM-G','EM-RD','EM-MT','EM-M',
+  'EA-N','EA-L','EA-D',
+  'ES-O','ES-F','ES-P','ES-SL','ES-SLNL','ES-PS',
+];
+
 export interface User {
   id: string;
   email: string;
@@ -24,6 +31,7 @@ export interface User {
   role: UserRole;
   phone?: string;
   country_code: string;
+  preferred_language: SupportedLocale;
   created_at: string;
   deleted_at?: string;
 }
@@ -44,6 +52,7 @@ export interface Patient {
   birth_date: string;
   gender?: string;
   native_language: string;
+  can_read: boolean;
   notes?: string;
   created_at: string;
 }
@@ -60,6 +69,7 @@ export interface EvaluationItem {
   id: string;
   target_word: string;
   image_url: string;
+  emoji: string;
   audio_url?: string;
   age_min_months: number;
   age_max_months: number;
@@ -76,6 +86,7 @@ export interface EvaluationSession {
   therapist_id?: string;
   status: SessionStatus;
   age_months: number;
+  can_read: boolean;
   started_at?: string;
   completed_at?: string;
   created_at: string;
@@ -96,6 +107,7 @@ export interface Deviation {
   code: PhonologicalCode;
   description: string;
   position?: string;
+  example?: string;
 }
 
 export interface AIAnalysis {
@@ -118,6 +130,12 @@ export interface ScoresByCategory {
   [key: string]: number;
 }
 
+export interface WordResult {
+  item: EvaluationItem;
+  recording?: SessionRecording;
+  analysis?: AIAnalysis;
+}
+
 export interface PrediagnosisReport {
   id: string;
   session_id: string;
@@ -127,6 +145,7 @@ export interface PrediagnosisReport {
   scores_by_category: ScoresByCategory;
   summary_es: string;
   recommendation: string;
+  word_results: WordResult[];
   generated_at: string;
   reviewed_by?: string;
   reviewed_at?: string;
@@ -155,18 +174,56 @@ export interface Subscription {
   created_at: string;
 }
 
+export interface LanguageRequest {
+  id: string;
+  name: string;
+  email: string;
+  language_requested: string;
+  country: string;
+  created_at: string;
+}
+
 // ---- API Request/Response types ----
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  full_name: string;
+  country_code?: string;
+  preferred_language?: SupportedLocale;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  guardian?: Guardian;
+  access_token: string;
+  refresh_token: string;
+}
 
 export interface CreatePatientRequest {
   first_name: string;
   birth_date: string;
   gender?: string;
   native_language?: string;
+  can_read: boolean;
   notes?: string;
 }
 
 export interface StartSessionRequest {
   patient_id: string;
+}
+
+export interface SubmitRecordingRequest {
+  session_id: string;
+  item_id: string;
+  audio_base64: string;
+  mime_type: MimeType;
+  duration_ms: number;
 }
 
 export interface TranscribeRequest {
@@ -189,7 +246,17 @@ export interface ReportResponse {
   report: PrediagnosisReport;
   session: EvaluationSession;
   patient: Patient;
+  items: EvaluationItem[];
+  recordings: SessionRecording[];
+  analyses: AIAnalysis[];
   disclaimer: string;
+}
+
+export interface NextItemResponse {
+  item: EvaluationItem | null;
+  session_complete: boolean;
+  total_items: number;
+  completed_items: number;
 }
 
 // Signed URL response (TTL 15 min — never store)
