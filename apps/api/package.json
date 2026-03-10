@@ -13,8 +13,10 @@
     "@fastify/cors": "^9.0.0",
     "@fastify/jwt": "^8.0.0",
     "@fastify/rate-limit": "^9.0.0",
-    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/supabase-js": "^2.99.0",
+    "@voicecheck/diagnosis-engine": "^0.1.0",
     "@voicecheck/types": "*",
+    "axios": "^1.13.6",
     "fastify": "^4.26.0",
     "zod": "^3.22.0"
   },

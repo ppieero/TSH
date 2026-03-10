@@ -1,39 +1,50 @@
-import Fastify from 'fastify';
-import cors from '@fastify/cors';
-import jwt from '@fastify/jwt';
-import rateLimit from '@fastify/rate-limit';
-import { createClient } from '@supabase/supabase-js';
+import Fastify from 'fastify'
+import cors from '@fastify/cors'
+import jwt from '@fastify/jwt'
+import rateLimit from '@fastify/rate-limit'
+import { createClient } from '@supabase/supabase-js'
+import authRoutes from './routes/auth.js'
+import patientRoutes from './routes/patients.js'
+import sessionRoutes from './routes/sessions.js'
+import recordingRoutes from './routes/recordings.js'
+import reportRoutes from './routes/reports.js'
+import analyzeRoutes from './routes/analyze.js'
+import languageRequestRoutes from './routes/languageRequests.js'
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: true })
 
-// Plugins
-await app.register(cors, {
-  origin: process.env.ALLOWED_ORIGINS?.split(',') ?? ['http://localhost:3000'],
-});
+// Supabase admin client (service role - bypass RLS)
+export const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-await app.register(jwt, {
-  secret: process.env.JWT_SECRET ?? 'dev-secret-change-in-production',
-});
+app.register(cors, {
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+  credentials: true,
+})
 
-await app.register(rateLimit, {
-  max: 100,
-  timeWindow: '1 minute',
-});
+app.register(jwt, { secret: process.env.JWT_SECRET! })
 
-// Supabase client (service role — server only)
-const supabase = createClient(
-  process.env.SUPABASE_URL ?? '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
-);
+app.register(rateLimit, { max: 100, timeWindow: '1 minute' })
 
-// Health check
-app.get('/health', async () => ({ status: 'ok', timestamp: new Date().toISOString() }));
+app.get('/health', async () => ({ status: 'ok', version: '1.0.0' }))
 
-// Routes (to be expanded per module)
-await app.register(import('./routes/auth.js'));
-await app.register(import('./routes/patients.js'), { prefix: '/patients' });
-await app.register(import('./routes/sessions.js'), { prefix: '/sessions' });
-await app.register(import('./routes/reports.js'), { prefix: '/reports' });
+app.register(authRoutes, { prefix: '/auth' })
+app.register(patientRoutes, { prefix: '/patients' })
+app.register(sessionRoutes, { prefix: '/sessions' })
+app.register(recordingRoutes, { prefix: '/sessions' })
+app.register(reportRoutes, { prefix: '/reports' })
+app.register(analyzeRoutes, { prefix: '/analyze' })
+app.register(languageRequestRoutes, { prefix: '/language-requests' })
 
-const port = Number(process.env.PORT ?? 3001);
-await app.listen({ port, host: '0.0.0.0' });
+const start = async () => {
+  try {
+    await app.listen({ port: Number(process.env.PORT) || 3001, host: '0.0.0.0' })
+    console.log('VoiceCheck API running on port', process.env.PORT || 3001)
+  } catch (err) {
+    app.log.error(err)
+    process.exit(1)
+  }
+}
+start()
