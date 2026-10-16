@@ -1,7 +1,5 @@
-import os
-from openai import AsyncOpenAI
+from services.openai_client import get_client
 
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 async def transcribe_audio(file_path: str) -> str:
     """
@@ -9,7 +7,7 @@ async def transcribe_audio(file_path: str) -> str:
     Returns transcription text in Spanish.
     """
     with open(file_path, "rb") as audio_file:
-        response = await client.audio.transcriptions.create(
+        response = await get_client().audio.transcriptions.create(
             model="whisper-1",
             file=audio_file,
             language="es",  # Force Spanish

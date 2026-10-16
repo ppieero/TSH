@@ -1,10 +1,8 @@
-import os
 import json
 import re
-from openai import AsyncOpenAI
+from services.openai_client import get_client
 from phonology.patterns import PHONOLOGICAL_PATTERNS, PATTERN_EXAMPLES, normalize_word
 
-client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 SYSTEM_PROMPT = """Eres un fonoaudiólogo clínico especialista en fonología del desarrollo infantil en español latinoamericano.
 
@@ -92,7 +90,7 @@ Edad del niño: {age_months} meses ({age_months // 12} años {age_months % 12} m
 
 Identifica qué proceso(s) fonológico(s) aplican y responde en formato JSON."""
 
-    response = await client.chat.completions.create(
+    response = await get_client().chat.completions.create(
         model="gpt-4o",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},

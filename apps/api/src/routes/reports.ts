@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { supabaseAdmin } from '../server.js'
 import { authenticate } from '../middleware/auth.js'
 import { generateReport, DISCLAIMER_ES } from '@voicecheck/diagnosis-engine'
-import type { AIAnalysis } from '@voicecheck/types'
+import type { AIAnalysis, EvaluationItem, SessionRecording, WordResult } from '@voicecheck/types'
 
 const ReviewSchema = z.object({
   therapist_notes: z.string().min(1),
@@ -139,8 +139,9 @@ export default async function reportRoutes(app: FastifyInstance) {
 
         const recordingsList = recordings || []
 
-        // b. Get all ai_analyses for those recordings
+        // b. Get all ai_analyses and evaluation_items for those recordings
         let analysesList: AIAnalysis[] = []
+        let itemsList: EvaluationItem[] = []
         if (recordingsList.length > 0) {
           const recordingIds = recordingsList.map((r: any) => r.id)
           const { data: analyses, error: analysesError } = await supabaseAdmin
@@ -152,10 +153,27 @@ export default async function reportRoutes(app: FastifyInstance) {
             return reply.status(500).send({ error: analysesError.message })
           }
           analysesList = (analyses || []) as AIAnalysis[]
+
+          const itemIds = [...new Set(recordingsList.map((r: any) => r.item_id))]
+          const { data: items, error: itemsError } = await supabaseAdmin
+            .from('evaluation_items')
+            .select('*')
+            .in('id', itemIds)
+
+          if (itemsError) {
+            return reply.status(500).send({ error: itemsError.message })
+          }
+          itemsList = (items || []) as EvaluationItem[]
         }
 
-        // c. Call generateReport()
-        const reportData = generateReport(sessionId, analysesList)
+        // c. Pair each recording with its target word and analysis, then call generateReport()
+        const wordResults: WordResult[] = recordingsList.flatMap((recording: any) => {
+          const item = itemsList.find(i => i.id === recording.item_id)
+          if (!item) return []
+          const analysis = analysesList.find(a => a.recording_id === recording.id)
+          return [{ item, recording: recording as SessionRecording, analysis }]
+        })
+        const reportData = generateReport(sessionId, wordResults)
 
         // d. Save to prediagnosis_reports
         const { data: newReport, error: reportError } = await supabaseAdmin

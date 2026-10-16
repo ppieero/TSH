@@ -1053,4 +1053,8 @@ export const translations = {
   },
 } as const
 
-export type TranslationKeys = typeof translations.es
+// Forma de las traducciones con textos como string: "as const" deja cada texto como literal y
+// el inglés y el portugués no encajarían en el tipo del español.
+type Widen<T> = T extends string ? string : { readonly [K in keyof T]: Widen<T[K]> }
+
+export type TranslationKeys = Widen<typeof translations.es>

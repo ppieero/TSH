@@ -84,7 +84,7 @@ export default async function recordingRoutes(app: FastifyInstance) {
         .upload(fileName, buffer, { contentType: body.mime_type, upsert: false })
 
       if (uploadError) {
-        app.log.error('Storage upload error:', uploadError)
+        app.log.error(uploadError, 'Storage upload error')
         return reply.status(500).send({ error: `Storage upload failed: ${uploadError.message}` })
       }
 

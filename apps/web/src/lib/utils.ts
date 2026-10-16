@@ -1,4 +1,4 @@
-import { type ClassValue, clsx } from 'clsx'
+type ClassValue = string | number | boolean | null | undefined | Record<string, unknown> | ClassValue[]
 
 // Simple cn function without clsx dependency
 export function cn(...inputs: ClassValue[]): string {
